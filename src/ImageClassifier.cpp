@@ -13,6 +13,9 @@ namespace Homework {
         const std::size_t IMAGE_SIDE_SIZE = 28;
         const std::size_t IMAGE_SIZE = IMAGE_SIDE_SIZE * IMAGE_SIDE_SIZE;
         const std::uint8_t NUMBER_OF_CATEGORIES = 10;
+
+        const std::string INPUT_OPERATION_NAME = "serving_default_input";
+        const std::string OUTPUT_OPERATION_NAME = "StatefulPartitionedCall";
     }
 
     static void emptyDeallocator(void* data, size_t length, void* arg) {
@@ -20,14 +23,14 @@ namespace Homework {
 
     static Category probabilitiesToCategory(float* probabilies) {
         float maxValue = 0;
-        Category result = 0;
+        Category category = 0;
         for (Category i = 0; i < NUMBER_OF_CATEGORIES; ++i) {
             if (maxValue < probabilies[i]) {
                 maxValue = probabilies[i];
-                result = i;
+                category = i;
             }
         }
-        return result;
+        return category;
     }
 
     ImageClassifier::ImageClassifier(const std::string& modelDir_) {
@@ -35,16 +38,16 @@ namespace Homework {
             &TAGS, TAGS_LENGTH, graph.get(), nullptr, status.get())});
 
         //inputs
-        auto inputOperation = TF_GraphOperationByName(graph.get(), "serving_default_input");
+        auto inputOperation = TF_GraphOperationByName(graph.get(), INPUT_OPERATION_NAME.c_str());
         if (inputOperation == nullptr) {
-            throw std::runtime_error("An input operation was not found.");
+            throw InvalidModelException("an input operation was not found.");
         }
         inputs = {{inputOperation, 0}};        
 
         //outputs
-        auto outputOperation = TF_GraphOperationByName(graph.get(), "StatefulPartitionedCall");
+        auto outputOperation = TF_GraphOperationByName(graph.get(), OUTPUT_OPERATION_NAME.c_str());
         if (outputOperation == nullptr) {
-            throw std::runtime_error("An output operation was not found");
+            throw InvalidModelException("an output operation was not found");
         }
         outputs = {{outputOperation, 0}};
     }
@@ -52,8 +55,8 @@ namespace Homework {
     Category ImageClassifier::predict(Features& input_) {
         int64_t dimensions[] = {1, IMAGE_SIDE_SIZE, IMAGE_SIDE_SIZE, 1};
         const int inputSizeInBytes = IMAGE_SIZE * sizeof(float);
-        TfTensor inputTensor{TF_NewTensor(TF_FLOAT, dimensions, 4, 
-                                          reinterpret_cast<void*>(input_.data()), inputSizeInBytes, &emptyDeallocator, 0), 
+        TfTensor inputTensor{TF_NewTensor(TF_FLOAT, dimensions, 4, reinterpret_cast<void*>(input_.data()), 
+                                          inputSizeInBytes, &emptyDeallocator, 0), 
                                           TF_DeleteTensor};
         std::vector<TF_Tensor*> inputValues = {inputTensor.get()};
 

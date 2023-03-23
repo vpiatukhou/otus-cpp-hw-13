@@ -4,13 +4,22 @@
 
 #include <tensorflow/c/c_api.h>
 
-#include <vector>
 #include <memory>
+#include <stdexcept>
+#include <vector>
 
 namespace Homework {
 
     using Category = std::uint8_t;
     using Features = std::vector<float>;
+
+    /**
+     * Thorwn if the provided tensforflow model is invalid.
+     */
+    class InvalidModelException : public std::runtime_error {
+    public:
+        InvalidModelException(const std::string& message) : std::runtime_error(message) { }
+    };
 
     class ImageClassifier {
     public:

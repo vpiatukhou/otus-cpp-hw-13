@@ -1,0 +1,44 @@
+name: 'release'
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    permissions: write-all
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get update && sudo apt-get install libboost-all-dev -y
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: build and test
+        run: |
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_TESTS=TRUE && \
+          cmake --build . && \
+          ctest
+      - name: build for release
+        run: |
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_TESTS=FALSE && \
+          cmake --build . --target package
+      - name: create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./fashio_mnist-0.0.${{ github.run_number }}-Linux.deb
+          asset_name: fashio_mnist-0.0.${{ github.run_number }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package

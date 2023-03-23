@@ -11,10 +11,7 @@ add_library(fashio_mnist STATIC DataReader.cpp ImageClassifier.cpp)
 add_executable(fashio_mnist_cli Main.cpp)
 set_target_properties(fashio_mnist_cli PROPERTIES OUTPUT_NAME fashio_mnist) #rename the executable to "fashio_mnist"
 
-message("TENSORFLOW = ${tensorflow_SOURCE_DIR}")
-
-target_include_directories(fashio_mnist PRIVATE ${tensorflow_SOURCE_DIR}/include PUBLIC ${Boost_INCLUDE_DIR})
-target_include_directories(fashio_mnist_cli PRIVATE ${tensorflow_SOURCE_DIR}/include) #TODO to remove
+target_include_directories(fashio_mnist PUBLIC ${tensorflow_SOURCE_DIR}/include PUBLIC ${Boost_INCLUDE_DIR})
 
 target_link_libraries(fashio_mnist PRIVATE ${tensorflow_SOURCE_DIR}/lib/libtensorflow.so)
 target_link_libraries(fashio_mnist_cli PRIVATE fashio_mnist)

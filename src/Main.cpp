@@ -8,11 +8,10 @@ namespace Homework {
     const int NUMBER_OF_ARGUMENTS = 3;
     const std::size_t INPUT_DATA_PATH_INDEX = 1;
     const std::size_t MODEL_DIR_INDEX = 2;
+    const std::size_t INFO_MESSAGE_EVERY_N_SAMPLES = 1000;
 
-    const std::size_t CATEGORY_INDEX = 0;
-    const std::size_t NUMBER_OF_FEATURES = 28 * 28;
-
-    const float MAX_FEATURE_VALUE = 255.0f;
+    const int INTERNAL_ERROR = -1;
+    const int WRONG_NUMBER_OF_ARGUMENTS_ERROR = -2;
 }
 
 int main(int argc, char* argv[]) {
@@ -20,47 +19,39 @@ int main(int argc, char* argv[]) {
 
     if (argc != NUMBER_OF_ARGUMENTS) {
         std::cerr << "Wrong number of arguments.\n\tUsage: fashio_mnist input.csv path/to/tensorflow/model" << std::endl;
-        return -2;
+        return WRONG_NUMBER_OF_ARGUMENTS_ERROR;
     }
-
-    Category category;
 
     std::size_t totalSamples = 0;
     std::size_t truePredictions = 0;
 
     try {
-        DataReader dataReader(argv[INPUT_DATA_PATH_INDEX]);   //  /app/data/test.csv      //TODO to remove
-        ImageClassifier classifier(argv[MODEL_DIR_INDEX]);         //  /app/data/saved_model/  //TODO to remove
-        std::size_t lineNumber = 0;
-        while (dataReader.hasNext()) {
-            Category category;
-            Features features;
-            try {
-                dataReader.readSample(category, features);
-            } catch (std::invalid_argument& e) {
-                std::cout << "Error on reading a sample #" << lineNumber << ": " << e.what() << std::endl;
-            }
+        DataReader dataReader(argv[INPUT_DATA_PATH_INDEX]);
+        ImageClassifier classifier(argv[MODEL_DIR_INDEX]);
 
-            if (features.empty()) { //TODO refactor
-                break;
-            }
-
+        Category category;
+        Features features;
+        while (dataReader.readSample(category, features)) {
             auto predictedCategory = classifier.predict(features);
-
-            ++totalSamples;
-            if (category == predictedCategory) {
+            if (predictedCategory == category) {
                 ++truePredictions;
             }
 
-            if (totalSamples % 1000 == 0) {
+            ++totalSamples;
+
+            if (totalSamples % INFO_MESSAGE_EVERY_N_SAMPLES == 0) {
                 std::cout << "Processed samples: " << totalSamples << std::endl;
             }
-
-            ++lineNumber;
         }
+    } catch (InvalidDataException& e) {
+        std::cerr << "Error reading a sample #" << (totalSamples + 1) << ": " << e.what() << std::endl;
+        return INTERNAL_ERROR;
+    } catch (InvalidModelException& e) {
+        std::cerr << "Error loading the model: " << e.what() << std::endl;
+        return INTERNAL_ERROR;
     } catch (std::exception& e) {
         std::cerr << "Internal error: " << e.what() << std::endl;
-        return -1;
+        return INTERNAL_ERROR;
     }
 
     double accuracy = static_cast<double>(truePredictions) / totalSamples;

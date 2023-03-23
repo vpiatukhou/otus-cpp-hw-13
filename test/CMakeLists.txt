@@ -1,6 +1,6 @@
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-add_executable(fashio_mnist_test)
+add_executable(fashio_mnist_test DataReaderTest.cpp)
 
 include(FetchContent)
 FetchContent_Declare(
